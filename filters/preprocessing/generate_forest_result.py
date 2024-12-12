@@ -42,7 +42,7 @@ def main():
         image_id=(image_file.split('/')[-1].split('.')[0])[:-len('_3B_AnalyticMS')]
         for points in historical_data:
             other_boundary=shapely.geometry.Polygon(points)
-            if boundary.intersects(other_boundary):
+            if boundary.intersects(other_boundary): # 判断区域交叉贯穿
                 results[image_id]=[1,0]
                 break
             else:

@@ -33,7 +33,7 @@ def main():
                 'eop': 'http://earth.esa.int/eop'})
             assert asset_id is not None
             asset_id = asset_id.text
-            image_id = asset_id[:-len('_3B_AnalyticMS')]  # remove suffix
+            image_id = asset_id[:-len(' _3B_AnalyticMS')]  # remove suffix
             if image_id not in forest_data or forest_data[image_id][0] < 0.5:
                 continue
             capture_time = metadata.find('.//eop:acquisitionDate', namespaces={

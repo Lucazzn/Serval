@@ -51,11 +51,11 @@ class Transmission:
 
         #receiving is a dict[node][channel] = List[ (packet, (startTime, endTime), PER, SNR) ]
         
-        receiving = {}
+        receiving = {}              # 遍历所有发送节点 0 {1 所有接收节点 node：{2所有发送/接收通道 transmission.receivingChannel: [3发送的数据包 (packet, (startTime, endTime), PER, SNR)，(),() ……]}}
         #s = timeNow()
         for transmission in transmissions:
             for node in transmission.receivingNodes:
-                for i in range(len(transmission.packets)):
+                for i in range(len(transmission.packets)):  # node不变，遍历所有发送的数据包；通道不变
                     lst = receiving.setdefault(node, {})
                     chanList = lst.setdefault(transmission.receivingChannel, [])
                     chanList.append((transmission.packets[i], transmission.packetsTime[i], transmission.PER[node], transmission.SNR[node], str(transmission.sending), str(transmission.packets[i])))
@@ -67,15 +67,16 @@ class Transmission:
         #now let's go through each receiving and find any overlapping times 
         #TODO: double check if I need to consider the -6 difference - seems kinda unimportant
         #t = timeNow()
-        for receiver in receiving.keys():
-            for channel, blocks in receiving[receiver].items():
+        for receiver in receiving.keys():           # 遍历所有接收node
+            for channel, blocks in receiving[receiver].items():   # 遍历所有通道
                 if len(blocks) == 0:
                     continue
                 #now for each block, we have a list of tuples where the 0th element is the packet and the 1st element is (startTime, endTime) and 2nd is the sendingNode
                 #we need to find out if any of the times overlap, and if so drop them from list
                 
                 times = [i[1] for i in blocks]
-                collidedInds = set() #s et of indicies of collided packets
+                collidedInds = set() # set of indicies of collided packets
+                # 检查每颗卫星上：每个通道上的数据包时间 times，找出时间重叠的包。
                 for i in range(len(times)):
                     for j in range(len(times)):
                         if i == j:
@@ -83,12 +84,16 @@ class Transmission:
                         #there is overlap if the second start time is between the first start & end
                         firstTime = times[i]
                         secondTime = times[j]
-                        if firstTime[0] <= secondTime[0] and secondTime[0] < firstTime[1]:
+                        if firstTime[0] <= secondTime[0] and secondTime[0] < firstTime[1]:   # sec start time在first start 和end时间之间=>重叠；不重：后一个数据包的start时间在上一个数据包end time之后
+                            # 重叠=>比较 信噪比 SNR
                             snrOne = blocks[i][3]
                             snrTwo = blocks[j][3]
                             #if snrOne is greater than snrTwo by 6 db, then we can drop the second packet
                             #if snrTwo is greater than snrOne by 6 db, then we can drop the first packet
                             #if they are within 6 db, then we have a collision
+                            ''' 如果一个包的信噪比比另一个包高 6 dB 以上，则丢弃 信噪比低的包。
+                                如果两个包的信噪比相差不大，则认为发生了冲突，丢弃两个包。
+                            '''
                             if snrOne - snrTwo > 6:
                                 print("Collision between", blocks[i][0], "and", blocks[j][0], "Dropping ", blocks[j][0])
                                 collidedInds.add(j)
@@ -101,10 +106,11 @@ class Transmission:
                                 collidedInds.add(j)
                 
                 #now that we have this info, let's send
-                collidedPackets = [blocks[i][0] for i in collidedInds]
+                collidedPackets = [blocks[i][0] for i in collidedInds]  # 将冲突的数据包记录到日志中
                 if len(collidedPackets) > 0:
                     Log("Packets in collision:", *collidedPackets, receiver)
                 
+                # 对于没有冲突的数据包，检查包容错率PER
                 #now receive the successful packets
                 successfulInds = [i for i in range(len(blocks)) if i not in collidedInds]
                 succesfulBlocks = [blocks[i] for i in successfulInds]
@@ -120,6 +126,10 @@ class Transmission:
                         #Log("Packet dropped", packet)
                     else:
                         #print("Packet recieved", packet, receiver)
+                        '''
+                            如果随机数小于等于 PER，则丢弃该包。
+                            否则，检查接收节点是否有足够的接收能力，如果有，则接收该包。
+                        '''
                         time = block[1][1] - block[1][0]
                         if receiver.has_power_to_recieve(time):
                             receiver.use_receive_power(time)

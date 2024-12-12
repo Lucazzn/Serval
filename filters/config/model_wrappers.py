@@ -14,7 +14,7 @@ def build_cv_image_filter(base_model,chip_size=(256,256),device='cpu',batch_size
         # Expand the image to multiple of M,N
         M,N = chip_size
         if not(M==-1 and N==-1):
-            input_image = np.pad(input_image,((0,M-input_image.shape[0]%M),(0,N-input_image.shape[1]%N),(0,0)),'constant')
+            input_image = np.pad(input_image,((0,M-input_image.shape[0]%M),(0,N-input_image.shape[1]%N),(0,0)),'constant')  #用0 padding chips of image
             input_image=transform_function(input_image)
             # Chop the image into patches
             tiles = [input_image[x:x+M,y:y+N,:] for x in range(0,input_image.shape[0],M) for y in range(0,input_image.shape[1],N)]
@@ -30,6 +30,7 @@ def build_cv_image_filter(base_model,chip_size=(256,256),device='cpu',batch_size
                     # Compute softmax for "fire" class
                     output = torch.nn.functional.softmax(output,dim=1)[:,1].cpu().numpy().tolist()
                 all_outputs.extend(output)
+                
             print("Median: ", np.quantile(all_outputs, 0.5))
             print("Mean: ", np.average(all_outputs))
             model_result=np.average(all_outputs)

@@ -24,7 +24,14 @@ def evaluate_on_image(img,filter):
 def extract_image_id_from_path(path):
     image_name=path.split("/")[-1].split(".")[0]
     pattern=re.compile(r"([0-9]{8}_[0-9]{6}(_[0-9]{2}){0,1}_[0-9a-z]+)")
-    match=pattern.match(image_name)
+    '''
+    定义一个正则表达式模式，用于匹配图像ID。该模式匹配以下格式的字符串：
+    - 8位数字 + 下划线
+    - 6位数字 + 下划线
+    - 可选的2位数字 + 下划线（最多一次）
+    - 一串数字或小写字母
+    '''
+    match=pattern.match(image_name)  # 使用正则表达式模式 pattern 对 image_name 进行匹配
     if match is None:
         raise ValueError(f"Could not extract image id from {path}")
     return match.group(1)
@@ -62,6 +69,7 @@ if __name__ == "__main__":
         newLines.append(t)
     if args.array_size > 0:
         newLines = newLines[args.array_id::args.array_size]
+    # 提取图像id从路径
     if args.filter_name == "forest":
         l = {extract_image_id_from_path(i):evaluate_on_image(cv2.imread(i),model) for i in newLines}
     else:
@@ -69,4 +77,3 @@ if __name__ == "__main__":
     os.makedirs(f"results/filter_results/{args.filter_name}", exist_ok=True)
     with open(f"results/filter_results/{args.filter_name}/{args.array_id}.pkl", "wb+") as f:
         pickle.dump(l, f)
-    print("Done")

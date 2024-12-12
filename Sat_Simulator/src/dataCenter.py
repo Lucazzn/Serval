@@ -15,6 +15,11 @@ class DataCenter(NodeDecorator):
     """
     Class that models a universal data center that receives data from all stations
     Calls each station's 
+    
+    表示 universalDataCenter 变量可以是 DataCenter 类型的实例，也可以是 None。
+    - universalDataCenter: 这是变量的名称。
+    - 'Union[DataCenter, None]': 这是类型注解，表示变量可以是 DataCenter 类型或 None。
+    - = None: 这是变量的默认值，表示如果没有提供值，变量将被初始化为 None。
     """
     universalDataCenter: 'Union[DataCenter, None]' = None
 

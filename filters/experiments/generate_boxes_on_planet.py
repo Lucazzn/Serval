@@ -57,29 +57,30 @@ def apply_color_curve(image, parameter_file):
 def process_image(image, model, device='cuda', mode='fast', chip_size=1024, batch_size=32, threshold=0.5):
     probs, locs = [], []
     original_image = np.ascontiguousarray(np.array(image))
-    for x0 in range(0, image.shape[0], chip_size//2):
+    # image（1280,1280）
+    for x0 in range(0, image.shape[0], chip_size//2):     # 512,512
         for y0 in range(0, image.shape[1], chip_size//2):
             _rois, _locs = [], []
             chip = image[x0:x0+chip_size, y0:y0+chip_size]
-            png_chip = np.array(np.clip(chip*255, 0, 255), dtype=np.uint8)
-            boxes = find_regions(png_chip, mode)
-            for (x, y, w, h) in boxes:
-                roi = chip[y:y+h, x:x+w]
+            png_chip = np.array(np.clip(chip*255, 0, 255), dtype=np.uint8) # 限制数组中的值0-255
+            boxes = find_regions(png_chip, mode)            # 快速锁定区域，生成box坐标
+            for (x, y, w, h) in boxes:          # 找到的所有box  （x0，y0是chip起点，x，y是box起点）
+                roi = chip[y:y+h, x:x+w]       # box坐标x，y对应起始点，w，h对应box宽高
                 roi = cv2.resize(roi, (80, 80))
                 roi = roi.transpose(2, 0, 1)
-                _rois.append(roi)
-                _locs.append((y+x0, x+y0, y+h+x0, x+w+y0))
+                _rois.append(roi)                 #chip的box里面的图像数据
+                _locs.append((y+x0, x+y0, y+h+x0, x+w+y0))        # chip的box坐标
             with torch.no_grad():
-                for i in range(0, len(_rois), batch_size):
-                    batch = np.array(_rois[i:i+batch_size], dtype=np.float32)
+                for i in range(0, len(_rois), batch_size):   # 1个chip的box数据分批次处理
+                    batch = np.array(_rois[i:i+batch_size], dtype=np.float32)         # _rois：（bs，w，h）
                     batch = torch.from_numpy(batch).to(device)
                     output = model(batch)
-                    output = torch.nn.functional.softmax(output, dim=1)
+                    output = torch.nn.functional.softmax(output, dim=1)   # output:（bs，2）
                     for j in range(output.shape[0]):
                         if output[j, 1] > threshold:
-                            locs.append(_locs[i+j])
+                            locs.append(_locs[i+j])      # i是offset偏移首项，j是batch内部偏移
                             probs.append(output[j, 1].item())
-    selected_boxes = non_max_suppression(np.array(locs), probs)
+    selected_boxes = non_max_suppression(np.array(locs), probs)          # 选中的boxes（yolo）
     # Mark the image with the selected boxes
     for (x1, y1, x2, y2) in selected_boxes:
         cv2.rectangle(original_image, (y1, x1), (y2, x2), (0, 1, 0), 2)
@@ -130,19 +131,20 @@ def main():
                         default=1280, help='Output image size')
     args = parser.parse_args()
     print(args)
+    # 模型实例化并配置cuda设备
     print("Generating model...")
     model = get_model(args.model, eval(args.cfg))
     if args.device == 'cuda':
         model = model.cuda()
     elif args.device == 'cpu':
         model = model.cpu()
-    print("Loading weight...")
+    print("Loading weight...")   # 加载权重
     best_weight = torch.load(
         args.weight, map_location=torch.device(args.device))
     model.load_state_dict(best_weight)
     cv2.setUseOptimized(True)
-    model.eval()
-    print("Creating output folder...")
+    model.eval()        
+    print("Creating output folder...")  # root下面创建images,labels,marked文件夹
     root_dir = Path(args.output)
     root_dir.mkdir(exist_ok=True)
     images_dir = root_dir / 'images'
@@ -167,16 +169,16 @@ def main():
             chip_count = 0
             for i in range(0, image.shape[0], args.output_image_size):
                 for j in range(0, image.shape[1], args.output_image_size):
-                    print(f"Processing chip {chip_count}...")
+                    print(f"Processing chip {chip_count}...")         # 把图像按照output_image_size：1280 切割，处理单个chip
                     image_chip = image[i:i+args.output_image_size,
                                        j:j+args.output_image_size]
                     result, image_chip_processed = process_image(image=np.array(image_chip), model=model, chip_size=args.chip_size,
                                                                  batch_size=args.batch_size, threshold=args.threshold, device=args.device, mode=args.mode)
                     if args.save_marked_image:
                         plt.imsave(
-                            str(marked_dir / f"{lineno}_{chip_count}.jpg"), image_chip_processed)
-                    print("Total number of boxes: ", len(result))
-                    with open(labels_dir / f"{lineno}_{chip_count}.txt", 'w+') as f:
+                            str(marked_dir / f"{lineno}_{chip_count}.jpg"), image_chip_processed)       # 保存image
+                    print("Total number of boxes: ", len(result)) 
+                    with open(labels_dir / f"{lineno}_{chip_count}.txt", 'w+') as f:                    # 保存标签
                         for line in result:
                             f.write(line)
                             f.write('\n')

@@ -263,6 +263,7 @@ class Topology:
         top.satList = satList
         top.groundList = gsList
         top.nFootprints = nFootprints
+        top.linkList = loadedList
         gc.enable()
        
         return top

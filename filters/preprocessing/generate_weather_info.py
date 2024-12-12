@@ -29,7 +29,7 @@ def main():
             y=float(y)
             points.append((x, y))
         boundary=shapely.geometry.Polygon(points)
-        center=boundary.centroid
+        center=boundary.centroid   # 计算多边形的中心
         image_time=metadata.find('.//gml:beginPosition', namespaces={'gml': 'http://www.opengis.net/gml'})
         assert image_time is not None
         image_time=datetime.fromisoformat(image_time.text)
@@ -39,6 +39,7 @@ def main():
         assert (metadata_file.split('/')[-1].split('.')[0]).startswith(image_id), f'{metadata_file} does not match {image_file}'
         results[image_id]=weather
     pickle.dump(results, open(args.output_file, "wb"))
+    # 获得图片（对应地理位置的）的天气信息=>保存
 
 if __name__=='__main__':
     main()

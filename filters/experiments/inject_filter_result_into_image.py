@@ -30,11 +30,12 @@ def main():
     logging.getLogger("Main").info("Loading weather info")
     with open(args.weather_info_file, "rb") as f:
         weather_info = pickle.load(f)
+        
     logging.getLogger("Main").info("Injecting filter result into image")
     ca_ids = open(args.ca_id_file).read().splitlines()
     port_ids = open(args.port_id_file).read().splitlines()
     for image_id in images:
-        if image_id in filter_result:
+        if image_id in filter_result:  # 通过filter的图像
             # fill the missing values
             if "forest" not in filter_result[image_id]:
                 filter_result[image_id]["forest"] = [0, 0]

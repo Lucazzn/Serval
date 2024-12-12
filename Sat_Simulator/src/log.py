@@ -15,7 +15,7 @@ def clear_logging_file():
  
 from fastlogging import LogInit, INFO, Logger
 
-clear_logging_file()
+# clear_logging_file()
 loggingCurrentTime = Time() ##will be updated by the simulator class
 currentTimeStr = loggingCurrentTime.to_str() 
 

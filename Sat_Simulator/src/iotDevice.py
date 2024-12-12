@@ -68,6 +68,9 @@ class IotDevice(NodeDecorator):
     def load_data(self, timeStep: float, numData) -> None:
         """
         For Iot GS, creates 30 bits over one hour
+        - 如果地面站的纬度和经度在期望的位置，并且时间在期望的时间范围内，则数据收集频率是正常值的 1/3。
+            - self.in_event() 方法可能用于检查地面站是否在特定事件中，如果是，则调整 numData 的值。
+        - 如果只进行下行链路传输，则直接返回，不生成数据
         """
         if const.ONLY_DOWNLINK:
             return

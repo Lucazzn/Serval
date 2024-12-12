@@ -108,7 +108,7 @@ MINIMUM_BER = 1e-4
 
 ##Logging details:
 INCLUDE_UPLINK_CALCULATIONS = True ##wether to include uplink calculations in the log
-MAPS_PATH = ""
+MAPS_PATH = "myMaps/"# ""
 
 # At maximum how much bandwidth can sending priority images take up
 MAX_PRIORITY_BANDWIDTH = 1

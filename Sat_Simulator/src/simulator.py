@@ -23,6 +23,7 @@ from src.transmission import Transmission
 from src.groundTransmission import GroundTransmission
 from src.dataCenter import DataCenter
 from src import log
+from src.iotDevice import IotDevice
 
 import const
 
@@ -150,6 +151,23 @@ class Simulator:
 
             f.close()
 
+    def load_all_topologies(self, directory: str) -> None:
+        """
+        Load all topology files from the specified directory.
+
+        Arguments:
+            directory (str) - directory containing the topology files
+        """
+        import glob
+        file_pattern = os.path.join(directory, "*.pkl")
+        files = sorted(glob.glob(file_pattern))
+        
+        for file in files:
+            print(f"Loading topology from {file}")
+            with open(file, "rb") as f:
+                topology = Topology.load(f, self.satList, self.gsList)
+                self.topologys[topology.time.to_str()] = topology
+
     def load_topology(self, filename: str) -> None:
         """
         Load topology from file. This will be run after the simulation is created and before the simulation is run
@@ -177,13 +195,13 @@ class Simulator:
         log.Log("Routing algorithm", const.ROUTING_MECHANISM)
         iotDevices = [i for i in self.gsList if i.transmitAble]
         nIot = len(iotDevices)
-        
+        DataCenter(self.gsList[0])
         ##Start sim:
         while time < self.endTime:
             s = time_now()
             #print("Simulation at", time.to_str())
             log.update_logging_time(time)
-
+            # 计算每个卫星的轨道：
             #if the topology maps have been created - this should load from storage and not re-compute anything
             for sat in self.satList:
                 sat.calculate_orbit(time)
@@ -192,21 +210,26 @@ class Simulator:
             for sat in self.satList:
                 sat.load_data(self.timeStep)
                 sat.load_packet_buffer()
-            
+            # 计算数据和加载数据包缓冲区：
             for gs in self.gsList:
-                gs.load_data(self.timeStep)
+                if isinstance(gs, IotDevice):
+                    numData =  1 # self.calculate_num_data(timeStep)  # 假设有一个方法计算 numData
+                    gs.load_data(self.timeStep, numData)
+                else:
+                    gs.load_data(self.timeStep)
+                # gs.load_data(self.timeStep)
                 gs.load_packet_buffer()
             
             if const.INCLUDE_UNIVERSAL_DATA_CENTER:
                 DataCenter.universalDataCenter.load_data(self.timeStep)
                 DataCenter.universalDataCenter.load_packet_buffer()
-
+            # 计算功率消耗
             if const.INCLUDE_POWER_CALCULATIONS:
                 for sat in self.satList:
                     sat.generate_power(self.timeStep)
                     log.Log("Satellite power", sat.maxMWs, sat.currentMWs, sat)
                     sat.use_regular_power(self.timeStep)
-
+            # 加载或创建拓扑
             filePath = const.MAPS_PATH + time.to_str().replace(" ", "-") + ".pkl"
             if not const.ONLY_DOWNLINK and os.path.exists(filePath):
                 try:
@@ -219,7 +242,7 @@ class Simulator:
             else:
                 print("Creating maps")
                 topology = Topology(time, self.satList, self.gsList)
-
+            # 根据拓扑计算路由
             routing = Routing(topology, self.timeStep)
             links = routing.bestLinks # Dict[Satellite][Station] = Link
 
@@ -229,7 +252,7 @@ class Simulator:
                 GroundTransmission(self.gsList, self.timeStep)
 
             self.logAtTimestep()
-
+            # 增加时间步长并打印时间步长耗时：
             time.add_seconds(self.timeStep)
             print("Timestep took", time_now() - s)
             

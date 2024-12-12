@@ -37,7 +37,7 @@ class Station (Node):
         if id in Station.idToStation.keys():
             raise ValueError("All station ids must be unique")
 
-        Station.idToStation[self.id] = self
+        Station.idToStation[self.id] = self   
         Station.nameToStation[self.name] = self
 
         self.groundTransmitAble = False

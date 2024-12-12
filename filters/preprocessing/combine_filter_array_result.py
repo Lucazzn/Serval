@@ -23,7 +23,7 @@ for app in app_names:
             filepath = os.path.join(app_dir, filename)
             with open(filepath, "rb") as f:
                 app_data = pickle.load(f)
-                for id_, results in app_data.items():
+                for id_, results in app_data.items():     # 提前计算好，保存下来，直接按照id取出来
                     if id_ not in app_results:
                         app_results[id_] = {}
                     app_results[id_][app] = results

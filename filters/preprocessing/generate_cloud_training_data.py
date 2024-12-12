@@ -31,17 +31,17 @@ if __name__=="__main__":
         udm=tifffile.imread(udm_file)[5,:,:]
         print(image.shape,udm.shape)
         combined=np.concatenate([image,udm[:,:,None]],axis=2)
-        combined=rotate_image(combined)
+        combined=rotate_image(combined)  # 旋转图像
         udm=combined[:,:,4]
         image=combined[:,:,0:4]
-        image=scale_image(image)
-        image=np.clip(image,0,1)
+        image=scale_image(image)   # 缩放图像
+        image=np.clip(image,0,1)    # 修建截取图像
         for i in range(args.chips_per_image):
             x0=np.random.randint(0,image.shape[0]-args.chip_size)
             y0=np.random.randint(0,image.shape[1]-args.chip_size)
             chip=image[x0:x0+args.chip_size,y0:y0+args.chip_size]
             udm_chip=udm[x0:x0+args.chip_size,y0:y0+args.chip_size]
-            if np.average(udm_chip)>args.threshold:
+            if np.average(udm_chip)>args.threshold:   # 判断是否有云，umd数据可以判断有无云遮挡
                 label=1
             else:
                 label=0
