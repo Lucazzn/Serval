@@ -37,12 +37,15 @@ if __name__ == "__main__":
     const.DOWNLINK_BANDWIDTH_SCALING = args.downlink_bandwidth_scaling
     const.OEC = args.oec
     log.logger = LogInit(pathName=args.logging_file,
-                         level=INFO, encoding="ascii", useThreads=True)
+                         level=INFO, encoding="ascii", useThreads=True)   
+    
     filter_config = json.load(open(args.filter_config_file))
     for filter_name in filter_config["filters"]:
         filter_config["filters"][filter_name]["side_channel_threshold"] = args.cloud_threshold
+    
     build_filters(filter_config["filters"])
     global_filter_graph = FilterGraph(filter_config["global_filter_graph"])
+    
     sim = create_simulator(args)
     print("Running simulation...")
     sim.run()

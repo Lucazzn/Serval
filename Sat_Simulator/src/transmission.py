@@ -44,6 +44,9 @@ class Transmission:
         self.transmit(transmissions)
         
     def transmit(self, transmissions: 'List[CurrentTransmission]'):
+        '''
+            执行传输动作
+        '''
         #so here's how this works 
         #we have each device which has been scheduled from x time to y time
         #so let's do this, for each reception device's channel, we store a list of each packet's (startTime, endTime)
@@ -51,15 +54,25 @@ class Transmission:
 
         #receiving is a dict[node][channel] = List[ (packet, (startTime, endTime), PER, SNR) ]
         
-        receiving = {}              # 遍历所有发送节点 0 {1 所有接收节点 node：{2所有发送/接收通道 transmission.receivingChannel: [3发送的数据包 (packet, (startTime, endTime), PER, SNR)，(),() ……]}}
+        receiving = {}              
+        # 遍历所有发送节点 0 
+        # {1 所有接收节点 node：{2所有发送/接收通道 transmission.receivingChannel: [3发送的数据包info (packet, (startTime, endTime), PER, SNR)，(),() ……]}}
+    
         #s = timeNow()
-        for transmission in transmissions:
+        for transmission in transmissions:  # 遍历所有传输动作
             for node in transmission.receivingNodes:
                 for i in range(len(transmission.packets)):  # node不变，遍历所有发送的数据包；通道不变
                     lst = receiving.setdefault(node, {})
+                    # 用 setdefault 方法确保 receiving 字典中存在当前接收节点 node 的条目，如果不存在则创建一个空字典{}。
                     chanList = lst.setdefault(transmission.receivingChannel, [])
+                    # 使用 setdefault 方法确保 lst=receiving 的字典中存在当前接收通道 receivingChannel 的条目，如果不存在则创建一个空列表。
                     chanList.append((transmission.packets[i], transmission.packetsTime[i], transmission.PER[node], transmission.SNR[node], str(transmission.sending), str(transmission.packets[i])))
+                    # 将当前数据包的信息添加到通道列表 chanList 中。每个条目是一个元组，包含数据包、数据包时间、包错误率（PER）、信噪比（SNR）、发送节点和数据包的字符串表示。
+                    
                     #receiving[node][transmission.receivingChannel].append((transmission.packets[i], transmission.packetsTime[i], transmission.PER[node], str(transmission.sending), str(transmission.packets[i])))
+        # transmission：
+        # {发送节点，接收节点，通道，数据包，数据包时间，PER，SNR}
+        # 它将传输信息组织到一个字典中，以便后续处理。
         
         #print("Time to create receiving dict", timeNow() - s)
         
@@ -67,7 +80,12 @@ class Transmission:
         #now let's go through each receiving and find any overlapping times 
         #TODO: double check if I need to consider the -6 difference - seems kinda unimportant
         #t = timeNow()
+        
+        
+        # 信息聚合到一起，不管sendingNode，包放在一张大表里，只完成包接受动作
+        # {receivingNode：{channel：[block=包1，包2，包3，……]}}
         for receiver in receiving.keys():           # 遍历所有接收node
+            # k，v
             for channel, blocks in receiving[receiver].items():   # 遍历所有通道
                 if len(blocks) == 0:
                     continue
@@ -136,12 +154,33 @@ class Transmission:
                             receiver.recieve_packet(packet)
 
     def get_new_transmissions(self) -> 'Dict[int, List[currentTransmission]]':
+        '''
+            # 这个函数是整个传输过程的核心，它将所有的传输信息整合到一起，然后进行传输
+            配置每个传输动作
+            Arguments: 这是known  and unknown，只涉及sat->地面站之间的下行传输，不涉及sat和sat之间的连接
+            sat (Satellite)
+            gs (Station)
+            time (Time)
+            **kwargs (dict) - optional arguments. If you pass this, it will override the default values
+                snr (float)
+                distance (float)
+                uplinkDatarate (float)
+                downlinkDatarate (float)
+                BER (float)
+                PER (float)
+        # linklist: 
+        # - {send1:[starTime:[…按idx对应的………],nodesend：[……],channel：[……],endtime：[……]], 
+        # -  send2,
+        # -  send3
+        # - ……}
+        '''
+        
         devicesTransmitting = {}
         currentTransmissions = []
         
         for link in self.linkList:
             #print("Link has {} start times".format(len(link.startTimes)), *link.nodeSending)
-            for idx in range(len(link.startTimes)):
+            for idx in range(len(link.startTimes)):   # 处理一个sendnode的一个时间段的数据包信息
                 sending = link.nodeSending[idx]
                 startTime = link.startTimes[idx]
                 channel = link.channels[idx]
@@ -151,10 +190,10 @@ class Transmission:
                 if sending in devicesTransmitting:
                     #check if this is from the same  or another, if its in another - raise an exception
                     if link is devicesTransmitting[sending]:
-                        pass
+                        pass  # 当前sending确实在发送，但如果是同一个link，不做处理
                     else:
                         raise Exception("{} is transmitting on two links at the same time".format(sending))
-                devicesTransmitting[sending] = link
+                devicesTransmitting[sending] = link # 第一次记录当前发送节点在发送数据
                 
                 receiving = []
                 datarate = 0
@@ -179,18 +218,22 @@ class Transmission:
                     #Log("Sending", sending, "receiving", *receiving, "channel", channel, "datarate", datarate, "PER", per, "SNR", snr, "totalPackets")
                 
                 trns = CurrentTransmission(sending, receiving, channel)
+                # 建一个 CurrentTransmission 对象，表示当前传输，一个动作
                 
                 #now let's assign the packets within this transmission
                 currentTime = startTime
                 while currentTime < endTime and len(sending.transmitPacketQueue) > 0:
                     lengthOfNextPacket = sending.transmitPacketQueue[-1].size
                     timeForNext = lengthOfNextPacket / datarate
+                    
                     if currentTime + timeForNext <= endTime and sending.has_power_to_transmit(timeForNext):
+                        # 检查当前要发送的包可以在时间步结束前发送完，并且发送节点有足够能量发送数据包
                         sending.use_transmit_power(timeForNext)
-                        pck = sending.send_data()
+                        pck = sending.send_data()  # 发送的包
                         trns.packets.append(pck)
                         trns.packetsTime.append((currentTime, currentTime + timeForNext))
                         currentTime = currentTime + timeForNext
+                        # 完成一个传输动作的信息配置
                     else:
                         break  
                 # Log("Sending", sending, "receiving", *receiving, "channel", channel, "datarate", datarate, "PER", per, "SNR", snr, "totalPackets", len(trns.packets))
@@ -198,6 +241,9 @@ class Transmission:
                 trns.PER = per
                 trns.SNR = snr
                 currentTransmissions.append(trns)
+                
+                # 完成一个传输动作的信息配置
+                # (sendingNode，接收结点，通道，pck,(curtime,endtime),per,snr) 实际部署这个时间没法计算？实际跑，还是需要提前profiler，但我又不需要优化这个per啥的
                         
         return currentTransmissions
         

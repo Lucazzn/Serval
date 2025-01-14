@@ -2,14 +2,15 @@ from typing import TYPE_CHECKING, Union
 from matplotlib import pyplot as plt  # type: ignore
 import random
 
-import cartopy  # type: ignore
-import cartopy.crs as ccrs  # type: ignore
-from cartopy.geodesic import Geodesic  # type: ignore
+# import cartopy  # type: ignore
+# import cartopy.crs as ccrs  # type: ignore
+# from cartopy.geodesic import Geodesic  # type: ignore
 from matplotlib.patches import Polygon  # type: ignore
 
 from src.utils import Location, Print
 from src.node import Node
 from src.packet import Packet
+
 import const
 
 if TYPE_CHECKING:
@@ -50,57 +51,64 @@ class Station (Node):
         # This is for the upload bandwidth trace, it's either a list of ints (variable bandwidth) or an int (constant bandwidth)
         self.uploadBandwithTrace=uploadBandwidthTrace
         
-    @staticmethod
-    def plot_stations(gsList: 'List[Station]', threeDimensions: bool = True, outPath="") -> None:
+    # @staticmethod
+    # def plot_stations(gsList: 'List[Station]', threeDimensions: bool = True, outPath="") -> None:
+    #     """
+    #     Plots all the stations. Needs the position to already be updated.
+
+    #     Arguments:
+    #         gsList (List[Station]) - list of stations
+    #         threeDimensions (bool) - default is true, plot in 3d, if not, plot in 2d. 
+    #         outPath (str) - default is "", if not, you can specify the outfile & path it'll save to
+    #     """
+        """ @staticmethod 是 Python 中的一个装饰器，用于定义静态方法。静态方法属于类本身，而不是类的实例。
+        - 它们不需要访问实例或类的属性和方法，因此不需要 self 或 cls 参数。
+        静态方法的特点
+        - 不需要访问实例或类的属性和方法：静态方法通常用于执行一些独立于类实例的操作。
+        - 通过类名或实例调用：静态方法可以通过类名或实例来调用
         """
-        Plots all the stations. Needs the position to already be updated.
+    #     Print("Plotting stations:", len(gsList))
 
-        Arguments:
-            gsList (List[Station]) - list of stations
-            threeDimensions (bool) - default is true, plot in 3d, if not, plot in 2d. 
-            outPath (str) - default is "", if not, you can specify the outfile & path it'll save to
-        """
-        Print("Plotting stations:", len(gsList))
+    #     gd = Geodesic()
 
-        gd = Geodesic()
+    #     if threeDimensions:
+    #         map = ccrs.Orthographic(-10, 45)
+    #     else:
+    #         map = ccrs.PlateCarree()
+    #     transform = ccrs.PlateCarree()
 
-        if threeDimensions:
-            map = ccrs.Orthographic(-10, 45)
-        else:
-            map = ccrs.PlateCarree()
-        transform = ccrs.PlateCarree()
+    #     fig = plt.figure(figsize=(3, 3))
+    #     ax = fig.add_subplot(projection=map)
+    #     ax.coastlines()
+    #     ax.set_global()
+    #     ax.gridlines()
 
-        fig = plt.figure(figsize=(3, 3))
-        ax = fig.add_subplot(projection=map)
-        ax.coastlines()
-        ax.set_global()
-        ax.gridlines()
+    #     latList, longList, elevList = Location.multiple_to_lat_long(
+    #         [gs.position for gs in gsList])
+    #     if elevList[0] < -6000000:
+    #         Print("Ensure that your  positions are updated before plotting",
+    #               logLevel="error")
 
-        latList, longList, elevList = Location.multiple_to_lat_long(
-            [gs.position for gs in gsList])
-        if elevList[0] < -6000000:
-            Print("Ensure that your  positions are updated before plotting",
-                  logLevel="error")
+    #     # Now we assign each type of satellite to its own color
+    #     label = [type(gs).__name__ for gs in gsList]
+    #     labelDict: 'Dict[str, List[int]]' = {
+    #         lb: [] for lb in label}  # dict of ind to list of indexes
+    #     # {gstype1: [index1, index2, ...]}
+    #     for i in range(len(gsList)):
+    #         labelDict[label[i]].append(i)
 
-        # Now we assign each type of satellite to its own color
-        label = [type(gs).__name__ for gs in gsList]
-        labelDict: 'Dict[str, List[int]]' = {
-            lb: [] for lb in label}  # dict of ind to list of indexes
-        for i in range(len(gsList)):
-            labelDict[label[i]].append(i)
+    #     for lb in labelDict:
+    #         lngList = [longList[i] for i in labelDict[lb]]
+    #         ltList = [latList[i] for i in labelDict[lb]]
+    #         plt.scatter(x=lngList, y=ltList, transform=transform, label=lb)
 
-        for lb in labelDict:
-            lngList = [longList[i] for i in labelDict[lb]]
-            ltList = [latList[i] for i in labelDict[lb]]
-            plt.scatter(x=lngList, y=ltList, transform=transform, label=lb)
-
-        plt.legend()
-        plt.tight_layout()
-        plt.title("Ground Stations Current Position")
-        if outPath == "":
-            plt.show()
-        else:
-            plt.savefig(outPath, bbox_inches='tight')
+    #     plt.legend()
+    #     plt.tight_layout()
+    #     plt.title("Ground Stations Current Position")
+    #     if outPath == "":
+    #         plt.show()
+    #     else:
+    #         plt.savefig(outPath, bbox_inches='tight')
 
     def get_upload_bandwidth(self) -> int:
         """

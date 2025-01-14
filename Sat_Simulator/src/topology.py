@@ -70,7 +70,7 @@ class Topology:
             sat.calculate_orbit(time)
             satPos[idx] = sat.position.to_tuple()
 
-        ## groundPos : m x 3 where each row is a gs's position vector
+        ## groundPos : m x 3 where each  row is a gs's position vector
         for idx in range(len(groundList)):
             groundPos[idx] = groundList[idx].position.to_tuple()
 
@@ -79,7 +79,8 @@ class Topology:
 
         # r0Site is a m x 3 mat where it is the gs's position vector normalized by its magnitude
         r0Site = np.divide(groundPos.T, rNorms).T
-
+        # ↑ 计算地面站位置向量的范数 rNorms。将地面站位置向量归一化，得到 r0Site 矩阵
+        
         ## update that matrix by duplicating it by the number of satellites.
         ## For example, [1,2,3] becomes [1,2,3]
         ##                              [1,2,3]
@@ -89,8 +90,9 @@ class Topology:
         ## [gs1]
         ## [gsN]
         ## [gs0]
-        r0Site = np.vstack([r0Site] * len(satList))
+        r0Site = np.vstack([r0Site] * len(satList))    # (m*n) x 3
 
+        # 计算卫星和地面站位置向量的差
         ## delR is a (m*n) x 3 matrix where each row is the vector of the subtraction between the satellite positon and the ground position
         ## It is in the order of:
         ## [sat0 - gs0]
@@ -101,25 +103,27 @@ class Topology:
         ## etc.
         delR = (satPos[:, np.newaxis] - groundPos).reshape(-1, groundPos.shape[1])
 
-        delRNorms = np.linalg.norm(delR, axis=1)
+        delRNorms = np.linalg.norm(delR, axis=1)  # 
 
         # delRDividedByMag is each row of delR normalized where delRNorms is the norm of each row
-        delRDividedByMag = np.divide(delR.T, delRNorms).T
-
+        delRDividedByMag = np.divide(delR.T, delRNorms).T  # (m*n) x 3
+        
+        # 【sat1：[all gs,……]，sat2，……，……】
         ## Find the dot product of each row between delRDividedByMag and r0Site, and then convert to degrees
         ## the index of angles = the index of the satellite * len(groundList) + the index of each groundList
         ## 1d vector of size (m*n)
         angles =  np.arcsin( np.einsum('ij, ij->i', delRDividedByMag, r0Site) ) * 180/np.pi
+        # 计算每个 差向量 和地面站位置向量 的点积，并取反正弦值，得到角度
         
         ## 1d vector of size (m*n) of booleans if they are greater than the required angle
         #greater = np.greater(angles, const.MINIMUM_VISIBLE_ANGLE)
         
-        indicies = np.where(angles > const.MINIMUM_VISIBLE_ANGLE)
+        indicies = np.where(angles > const.MINIMUM_VISIBLE_ANGLE)    # 找出角度大于最小可见角度的 gs 索引
         ln = len(groundList)
 
         for idx in indicies[0]:
-            sat = satList[ idx // ln]
-            ground = groundList[idx % ln]
+            sat = satList[ idx // ln]  # m个，m个，m个……，每m个是一个卫星，计算当前索引对应的卫星
+            ground = groundList[idx % ln]  # m内，计算当前索引对应的地面站
 
             #uncomment this line to check if your calculations are right
             #print(angles[idx], sat.position.calculate_altitude_angle(ground.position), sat.position.to_alt_az(ground.position, time)[0])
@@ -153,8 +157,11 @@ class Topology:
                 if satToGround[sat][gs]:
                     tmpSatList.append(sat)
                     tmpGroundList.append(gs)
+        # 可见sat：gs对
         
         self.linkList = Link.create_link(tmpSatList, tmpGroundList, self.time)
+        # link就是包含这些属性的结构体
+        # outLinks = [Link(sat, ground, time, snr=snr, distance=dist) for sat, ground, snr, dist in zip(satellites, stations, snrs, distance)]
 
         ##put back into dictionary form:
         idx = 0

@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, no_type_check, TYPE_CHECKING
 import sys
 import math
 from time import time as time_now
-from collections import Iterable
+# from collections import Iterable
 from typing import Dict, List
 from collections.abc import Iterable
 
@@ -244,7 +244,7 @@ class Simulator:
                 topology = Topology(time, self.satList, self.gsList)
             # 根据拓扑计算路由
             routing = Routing(topology, self.timeStep)
-            links = routing.bestLinks # Dict[Satellite][Station] = Link
+            links = routing.bestLinks # Dict[Satellite][Station] = Link；  {sat：{station，time}}
 
             Transmission(links, topology, self.satList, self.gsList, self.timeStep)
 

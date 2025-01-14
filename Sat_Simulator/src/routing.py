@@ -17,7 +17,15 @@ from src.topology import Topology
 from src.log import Log
 from src.Coloring_MWIS_heuristics import greedy_MWIS
 
+# from ..src.satellite import Satellite
+# from ..src.station import Station
+# from ..src.links import Link
+# from ..src.topology import Topology
+# from ..src.log import Log
+# from ..src.Coloring_MWIS_heuristics import greedy_MWIS
+
 import const
+# from Sat_Simulator import const
 from const import RoutingMechanism
 
 distanceBetweenGS = {}
@@ -125,34 +133,88 @@ class Routing:
         outList: 'Dict[Satellite, Dict[Station, Link]]' = {}
         for sat in self.topology.satList:
             outList[sat] = {}
+        # 初始化输出字典，sat-gs 路由map
+            
         self.linkList = sorted(self.topology.linkList, key= lambda d : d.downlinkDatarate * d.sat.percent_of_memory_filled() + d.uplinkDatarate * d.gs.percent_of_memory_filled(), reverse=True)
+        # 根据 数据速率*内存使用率 降序排序链路
 
         ground_station_available = {gs: True for gs in self.topology.groundList}
         satellite_available = {sat: True for sat in self.topology.satList}
+        # 初始化使用字典， gs和sat是否可用
 
-        for link in self.linkList:
+        for link in self.linkList:  # 最佳 sat-gs 链路
             sat = link.sat
             ground = link.gs
             if satellite_available[sat] and ground_station_available[ground]:
                 if ground.recieveAble and ground.transmitAble:
+                    # 如果地面站既能接收又能发送数据，分配传输，并将卫星和地面站标记为不可用（已经分配传输了）。
                     link.assign_transmission(0, self.timeStep, 0, sat)
+                    # 0：相对于时间步开始的时间。在这里被设置为 0，表示传输从时间步的开始时刻开始
                     link.assign_transmission(0, self.timeStep, 0, ground)
                     satellite_available[sat] = False
                     ground_station_available[ground] = False
                 elif ground.recieveAble:
+                    # 只能接收数据,为sat分配发送动作
                     link.assign_transmission(0, self.timeStep, 0, sat)
                     satellite_available[sat] = False
                     if sat.beamForming == False:
-                        for gs in possibleLinks[sat].keys():
+                        # 如果卫星不支持波束成形，则将所有与该卫星相关的地面站 标记为不可用。只对这个sat有效 ？ 因为卫星只能连接一个地面站
+                        for gs in  [sat].keys():
                             ground_station_available[gs] = False
                     else:
-                        ground_station_available[ground] = False
+                        ground_station_available[ground] = False # 如果卫星支持波束成形，只当前gs标记为不可用（分配接受了）
 
                 elif ground.transmitAble:
+                    # 只能发送数据
                     ground_station_available[ground] = False
                     satellite_available[sat] = False
 
         return possibleLinks
+# def assign_by_datarate_and_available_memory(self, possibleLinks: 'Dict[Satellite, Dict[Station, Link]]') -> 'Dict[Satellite, Dict[Station, Link]]':
+#     """
+#     This method will assign the links to the satellites based on the datarate and the available memory of the satellite/ground stations.
+
+#     Arguments:
+#         possibleLinks: Dict[Satellite][Station] = Link
+#     Returns:
+#         Dict[Satellite][Station] = Link, which is where info should be transmitted
+#     """
+#     outList: 'Dict[Satellite, Dict[Station, Link]]' = {}
+#     for sat in self.topology.satList:
+#         outList[sat] = {}
+#     # 初始化输出字典，sat-gs 路由map
+        
+#     self.linkList = sorted(self.topology.linkList, key= lambda d : d.downlinkDatarate * d.sat.percent_of_memory_filled() + d.uplinkDatarate * d.gs.percent_of_memory_filled(), reverse=True)
+#     # 根据 数据速率*内存使用率 降序排序链路
+
+#     ground_station_available = {gs: True for gs in self.topology.groundList}
+#     satellite_available = {sat: True for sat in self.topology.satList}
+#     # 初始化使用字典， gs和sat是否可用
+
+#     for link in self.linkList:  # 最佳 sat-gs 链路
+#         sat = link.sat
+#         ground = link.gs
+#         if satellite_available[sat] and ground_station_available[ground]:
+#             if ground.recieveAble and ground.transmitAble:
+#                 # 如果地面站既能接收又能发送数据，分配传输，并将卫星和地面站标记为不可用（已经分配传输了）。
+#                 link.assign_transmission(0, self.timeStep, 0, sat)
+#                 link.assign_transmission(0, self.timeStep, 0, ground)
+#                 satellite_available[sat] = False
+#                 ground_station_available[ground] = False
+#                 outList[sat][ground] = link
+#             elif ground.recieveAble:
+#                 # 只能接收数据,为sat分配发送动作
+#                 link.assign_transmission(0, self.timeStep, 0, sat)
+#                 satellite_available[sat] = False
+#                 ground_station_available[ground] = False  # 只标记当前地面站为不可用
+#                 outList[sat][ground] = link
+#             elif ground.transmitAble:
+#                 # 只能发送数据
+#                 ground_station_available[ground] = False
+#                 satellite_available[sat] = False
+#                 outList[sat][ground] = link
+
+#     return outList
 
     def transmit_with_random_delays(self, possibleLinks: 'Dict[Satellite, Dict[Station, Link]]') -> 'Dict[Satellite, Dict[Station, Link]]':
         """

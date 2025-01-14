@@ -10,9 +10,9 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 import numpy as np # type: ignore
 import pandas as pd # type: ignore
-import cartopy # type: ignore
-import cartopy.crs as ccrs # type: ignore
-from cartopy.geodesic import Geodesic # type: ignore
+# import cartopy # type: ignore
+# import cartopy.crs as ccrs # type: ignore
+# from cartopy.geodesic import Geodesic # type: ignore
 import shapely # type: ignore
 from PyAstronomy import pyasl # type: ignore
 
@@ -289,66 +289,66 @@ class Satellite (Node):
         distance = theta/360 * 2 * np.pi * EARTH_RADIUS #arc length of the circle of the Earth
         return distance
 
-    @staticmethod
-    def plot_satellites(satList: 'List[Satellite]', threeDimensions: bool = True, outPath = "") -> None:
-        """
-        Plots all the satellites and their footprints. Needs the position to already be updated.
+    # @staticmethod
+    # def plot_satellites(satList: 'List[Satellite]', threeDimensions: bool = True, outPath = "") -> None:
+    #     """
+    #     Plots all the satellites and their footprints. Needs the position to already be updated.
 
-        Arguments:
-            satList (List[Satellite]) - list of satellites
-            threeDimensions (bool) - default is true, plot in 3d, if not, plot in 2d. It only plots the footprints if in 3d (it's kind of ugly in 2d)
-            outPath (str) - default is "", if not, you can specify the outfile & path it'll save to
-        """
-        Print("Plotting satellites:", len(satList))
+    #     Arguments:
+    #         satList (List[Satellite]) - list of satellites
+    #         threeDimensions (bool) - default is true, plot in 3d, if not, plot in 2d. It only plots the footprints if in 3d (it's kind of ugly in 2d)
+    #         outPath (str) - default is "", if not, you can specify the outfile & path it'll save to
+    #     """
+    #     Print("Plotting satellites:", len(satList))
         
-        gd = Geodesic()
+    #     gd = Geodesic()
         
-        if threeDimensions:
-            map = ccrs.Orthographic(-10, 45)
-        else:
-            map = ccrs.PlateCarree()
-        transform = ccrs.PlateCarree()
+    #     if threeDimensions:
+    #         map = ccrs.Orthographic(-10, 45)
+    #     else:
+    #         map = ccrs.PlateCarree()
+    #     transform = ccrs.PlateCarree()
 
-        fig = plt.figure(figsize=(3, 3))
-        ax = fig.add_subplot(projection=map)
-        ax.coastlines()
-        ax.set_global()
-        ax.gridlines()
-        geoms = []
+    #     fig = plt.figure(figsize=(3, 3))
+    #     ax = fig.add_subplot(projection=map)
+    #     ax.coastlines()
+    #     ax.set_global()
+    #     ax.gridlines()
+    #     geoms = []
 
-        latList, longList, elevList = Location.multiple_to_lat_long([sat.position for sat in satList])
-        if min(elevList) <= 0:
-            Print("Ensure that your satellites positions are updated before plotting", logLevel="error")
+    #     latList, longList, elevList = Location.multiple_to_lat_long([sat.position for sat in satList])
+    #     if min(elevList) <= 0:
+    #         Print("Ensure that your satellites positions are updated before plotting", logLevel="error")
         
-        ##Now we assign each type of satellite to its own color
-        label = [type(sat).__name__ for sat in satList]
-        labelDict: 'Dict[str, List[int]]' = {lb: [] for lb in label} #dict of ind to list of indexes
-        for i in range(len(satList)):
-            labelDict[label[i]].append(i)
+    #     ##Now we assign each type of satellite to its own color
+    #     label = [type(sat).__name__ for sat in satList]
+    #     labelDict: 'Dict[str, List[int]]' = {lb: [] for lb in label} #dict of ind to list of indexes
+    #     for i in range(len(satList)):
+    #         labelDict[label[i]].append(i)
 
-        for lb in labelDict:
-            lngList = [longList[i] for i in labelDict[lb]]
-            ltList = [latList[i] for i in labelDict[lb]]
-            distances = [satList[i].calculate_footprint() for i in labelDict[lb]]
+    #     for lb in labelDict:
+    #         lngList = [longList[i] for i in labelDict[lb]]
+    #         ltList = [latList[i] for i in labelDict[lb]]
+    #         distances = [satList[i].calculate_footprint() for i in labelDict[lb]]
             
-            if threeDimensions:
-                plt.scatter(x = lngList, y = ltList, transform=transform, label=lb, color='orange')
-                for ind in labelDict[lb]:
-                    cp = gd.circle(lon=longList[ind], lat=latList[ind], radius=satList[ind].calculate_footprint())
-                    geoms.append(shapely.geometry.Polygon(cp))
-            else:
-                plt.scatter(x = lngList, y = ltList, transform=transform, label=lb)
+    #         if threeDimensions:
+    #             plt.scatter(x = lngList, y = ltList, transform=transform, label=lb, color='orange')
+    #             for ind in labelDict[lb]:
+    #                 cp = gd.circle(lon=longList[ind], lat=latList[ind], radius=satList[ind].calculate_footprint())
+    #                 geoms.append(shapely.geometry.Polygon(cp))
+    #         else:
+    #             plt.scatter(x = lngList, y = ltList, transform=transform, label=lb)
 
-        if threeDimensions:
-            ax.add_geometries(geoms, crs=transform, edgecolor='r', alpha=.5)
+    #     if threeDimensions:
+    #         ax.add_geometries(geoms, crs=transform, edgecolor='r', alpha=.5)
 
-        plt.legend()
-        plt.tight_layout()
-        plt.title("Satellites Current Position")
-        if outPath == "":
-            plt.show()
-        else:
-            plt.savefig(outPath, bbox_inches='tight')
+    #     plt.legend()
+    #     plt.tight_layout()
+    #     plt.title("Satellites Current Position")
+    #     if outPath == "":
+    #         plt.show()
+    #     else:
+    #         plt.savefig(outPath, bbox_inches='tight')
 
     @staticmethod
     def create_constellation(listOfSats: 'List[Satellite]', numberOfPlanes: int, numberOfSatellitesPerPlane: int, inclination: float, altitude: float, referenceTime: 'Time') -> 'List[Satellite]':
