@@ -1,4 +1,4 @@
-name: satSim 
+# name: satSim 
 channels:
   - defaults
 dependencies:

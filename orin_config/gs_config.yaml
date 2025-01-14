@@ -1,0 +1,5 @@
+simulated_role: "gs"
+local_port: 65432
+master_satellite_ipPort: "10.204.40.2:65433"
+# Orin 1：192.168.123.107
+# Orin 2：192.168.123.108

@@ -64,7 +64,7 @@ if __name__ == "__main__":
     #process flags etc
     #maybe check dependencies - I have skyfield 1.42
     #set up simulator class with info from config fil
-
+    # -------------------------------------------------以下是地面站初始化部分-------------------------------------------------
     stations = pd.read_json("referenceData/stations.json")
     groundStations: 'List[Station]' = []
     cnt = 0
@@ -117,13 +117,19 @@ if __name__ == "__main__":
         iotCount += 1
         
     print("number of stations:" , len(groundStations))
+    
+    # -------------------------------------------------以下是卫星初始化部分---------------------------
     # 卫星（接收-发送卫星、拍照卫星？）
     satellites: 'List[Satellite]' = Satellite.load_from_tle("referenceData/swarm.txt")
     satellites = [IoTSatellite(i) for i in satellites]
     print("number of satellites:", len(satellites))
     
+    
+    
+    # ------------------------------------ 以下是模拟部分 ------------------------------------
     startTime = Time().from_str("2022-07-09 00:00:00")
     endTime = Time().from_str("2022-07-10 00:00:00")
+
 
     sim = Simulator(60, startTime, endTime, satellites, groundStations)
     # sim.calculate_topologys()
